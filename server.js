@@ -14,15 +14,13 @@
 
 // Environment variables
 require('dotenv').config({ path: `${__dirname}/.env` });
-const currencySymbol = process.env['CURRENCY_SYMBOL']
-const decimals = process.env['DECIMALS']
-const updateFrequency = process.env['UPDATE_FREQUENCY']
 const discordToken = process.env['DISCORD_TOKEN']
 const tokenQueryID = process.env['TOKEN_QUERY_ID']
-const baseURL = process.env['BASE_URL']
 const guildID = process.env['DISCORD_SERVER_ID']
 const queryURL = `${process.env['BASE_URL']}${tokenQueryID}`
 const fpQueryURL = process.env['FP_QUERY_URL']
+const hrQueryURL = process.env['HR_QUERY_URL']
+const hrApiKey = process.env['HR_API_KEY']
 
 
 
@@ -70,7 +68,7 @@ const channelUpdateLoop = function () {
 
     // ...and then run repeatedly, until termination
     // 1000ms x 60s x 1min
-    setInterval(updateChannels, (1000 * 60 * 1));
+    setInterval(updateChannels, (1000 * 60 * 5));
 
 }
 
@@ -102,7 +100,8 @@ async function updateChannels() {
     SETTINGS.channels.floor_price_channel.name = await generateFloorPriceStatString();
 
     // Update hashpower
-    SETTINGS.channels.hash_rate_channel.name = await generateHashPowerStatString();
+    // TODO
+    // SETTINGS.channels.hash_rate_channel.name = await generateHashPowerStatString();
 
 
     // Write updated JSON object to file
@@ -146,12 +145,13 @@ async function createNewChannels(guild) {
 
 
     // Create hash rate channel
-    console.log(`[INFO] Creating floor price channel...`);
-    const hashRateChannel = await guild.channels.create({
-        name: "Hash Rate Channel",
-        type: ChannelType.GuildVoice,
-    });
-    console.log(`[INFO]   Created channel ${hashRateChannel.id} (${hashRateChannel.name})`);
+    // TODO
+    // console.log(`[INFO] Creating floor price channel...`);
+    // const hashRateChannel = await guild.channels.create({
+    //     name: "Hash Rate Channel",
+    //     type: ChannelType.GuildVoice,
+    // });
+    // console.log(`[INFO]   Created channel ${hashRateChannel.id} (${hashRateChannel.name})`);
 
 
     // Populate "SETTINGS" JSON object
@@ -168,9 +168,10 @@ async function createNewChannels(guild) {
     SETTINGS.channels.floor_price_channel.name = "";
 
     // BTC Hash Rate channel
-    SETTINGS.channels.hash_rate_channel = {};
-    SETTINGS.channels.hash_rate_channel.id = hashRateChannel.id;
-    SETTINGS.channels.hash_rate_channel.name = "";
+    // TODO
+    // SETTINGS.channels.hash_rate_channel = {};
+    // SETTINGS.channels.hash_rate_channel.id = hashRateChannel.id;
+    // SETTINGS.channels.hash_rate_channel.name = "";
 
     // Write JSON object to file
     fs.writeFileSync(settingsFilePath, JSON.stringify(SETTINGS));
@@ -205,23 +206,23 @@ async function generateBtcPriceStatString() {
     var alertColor;
     if (priceChange > 0) {
         priceDirection = `\u2197`;
-        alertColor = `🟢`;
+        // alertColor = `🟢`;
     } else if (priceChange < 0) {
         priceDirection = `\u2198`;
-        alertColor = `🔴`;
+        // alertColor = `🔴`;
     } else {
         priceDirection = `\u2192`;
-        alertColor = `⚪`;
+        // alertColor = `⚪`;
     }
 
-    result = `${alertColor}BTC ${priceDirection} ${currentPrice} (${priceChangePercentage}%)`;
+    // result = `${alertColor} BTC $${currentPrice} (${priceDirection} ${priceChangePercentage}%)`;
+    result = `BTC: $${currentPrice} (${priceDirection} ${priceChangePercentage}%)`;
 
     return result;
 }
 
 async function generateFloorPriceStatString() {
 
-    result = `asdFP: 980 LUNA ($816.12)`;
     result = ``;
 
     luna_price = 0;
@@ -235,23 +236,23 @@ async function generateFloorPriceStatString() {
 
         }
     }
-    
-    
+
+
     floor_price = 0;
     await axios.get(`${fpQueryURL}`).then(res => {
-        
+
         // Just dump CoinGecko results to global variable
         if (res.data) {
 
             floor_price = res.data.floor;
-            
+
         }
-        
+
     });
-    
+
     dollar_price = floor_price * luna_price;
 
-    result = `🟡${floor_price} Floor ($${dollar_price.toFixed(2)})`;
+    result = `Floor: ${floor_price} LUNA ($${dollar_price.toFixed(2)})`;
 
     return result;
 }
@@ -259,6 +260,26 @@ async function generateFloorPriceStatString() {
 async function generateHashPowerStatString() {
 
     // TODO
+
+    try {
+        const response = await axios.get(
+            'https://api2.nicehash.com/main/api/v2/mining/rigs/activeWorkers',
+            {
+                headers: {
+                    'X-Request-Id': '1', // Optional, can be any unique value
+                    'X-Time': Date.now(), // Optional, timestamp in milliseconds
+                    'X-Auth': hrApiKey,
+                },
+            }
+        );
+
+        const activeWorkers = response.data.totalRigs;
+        console.log(`You have ${activeWorkers} active miners on NiceHash.`);
+    } catch (error) {
+        console.error('Error fetching active miners:', error.message);
+    }
+
+
 
     result = ``;
 
