@@ -22,6 +22,7 @@ const tokenQueryID = process.env['TOKEN_QUERY_ID']
 const baseURL = process.env['BASE_URL']
 const guildID = process.env['DISCORD_SERVER_ID']
 const queryURL = `${process.env['BASE_URL']}${tokenQueryID}`
+const fpQueryURL = process.env['FP_QUERY_URL']
 
 
 
@@ -42,6 +43,7 @@ const settingsFilePath = path.join(__dirname, 'settings.json');
 
 // Global Variables
 SETTINGS = {};
+TOKEN_PRICES = {};
 
 
 // Discord
@@ -90,11 +92,11 @@ async function updateChannels() {
         console.log(`[INFO] settings.json found and loaded (initial).`);
     }
 
-    // Update token prices
-    SETTINGS.token_prices = await getTokenPrices();
+    // Update token prices and save in TOKEN_PRICES global var
+    await updateTokenPrices();
 
-    // Update BTC Price
-    SETTINGS.channels.btc_price_channel.name = await generatePriceStatString();
+    // Update BTC Price channel string
+    SETTINGS.channels.btc_price_channel.name = await generateBtcPriceStatString();
 
     // Update floor price
     SETTINGS.channels.floor_price_channel.name = await generateFloorPriceStatString();
@@ -105,7 +107,7 @@ async function updateChannels() {
 
     // Write updated JSON object to file
     fs.writeFileSync(settingsFilePath, JSON.stringify(SETTINGS));
-    console.log(`[INFO]    settings.json updated successfully (prices).`);
+    console.log(`[INFO] settings.json updated successfully (prices).`);
 
     /********************************************************************
      * Update channel names with stats
@@ -115,27 +117,12 @@ async function updateChannels() {
     SETTINGS = JSON.parse(fs.readFileSync(settingsFilePath));
     console.log(`[INFO] settings.json found and loaded (refresh).`);
 
-    let channelID = "";
-    let channelName = "";
-    
-    // Construct BTC Price channel name
-    channelID = SETTINGS.channels.btc_price_channel.id;
-    channelName = SETTINGS.channels.btc_price_channel.name;
-    await guild.channels.cache.get(channelID).setName(channelName);
-    console.log(`[INFO] ${channelID} => (${channelName})`);
-
-    // Construct Floor Price channel name
-    channelID = SETTINGS.channels.floor_price_channel.id;
-    channelName = SETTINGS.channels.floor_price_channel.name;
-    await guild.channels.cache.get(channelID).setName(channelName);
-    console.log(`[INFO] ${channelID} => (${channelName})`);
-    
-    // Construct BTC Price channel name
-    channelID = SETTINGS.channels.hash_rate_channel.id;
-    channelName = SETTINGS.channels.hash_rate_channel.name;
-    await guild.channels.cache.get(channelID).setName(channelName);
-    console.log(`[INFO] ${channelID} => (${channelName})`);
-    
+    // Update all channel labels
+    for (var key in SETTINGS.channels) {
+        var channel = SETTINGS.channels[key];
+        await guild.channels.cache.get(channel.id).setName(channel.name);
+        console.log(`[INFO] ${channel.id} => "${channel.name}"`);
+    }
 }
 
 async function createNewChannels(guild) {
@@ -174,12 +161,12 @@ async function createNewChannels(guild) {
     SETTINGS.channels.btc_price_channel = {};
     SETTINGS.channels.btc_price_channel.id = btcPriceChannel.id;
     SETTINGS.channels.btc_price_channel.name = "";
-    
+
     // Floor Price channel
     SETTINGS.channels.floor_price_channel = {};
     SETTINGS.channels.floor_price_channel.id = floorPriceChannel.id;
     SETTINGS.channels.floor_price_channel.name = "";
-    
+
     // BTC Hash Rate channel
     SETTINGS.channels.hash_rate_channel = {};
     SETTINGS.channels.hash_rate_channel.id = hashRateChannel.id;
@@ -191,43 +178,80 @@ async function createNewChannels(guild) {
 }
 
 
-async function getTokenPrices() {
+async function updateTokenPrices() {
 
-    // TODO
+    await axios.get(`${queryURL}`).then(res => {
 
-    let TOKEN_PRICES = {
-        'LUNA': 0.98,
-        'BTC': 56000.12,
-    };
-    // axios.get(`${queryURL}`).then(res => {
+        // Just dump CoinGecko results to global variable
+        if (res.data) {
+            TOKEN_PRICES = res.data;
+        }
 
-    //     // Coingecko list
-    //     if (res.data) {
-    //         res.data.forEach(token => {
-    //             // Put inside settings.json
-    //             console.log(now(), `INFO: CG`, token.symbol.toUpperCase(), ":", token.current_price);
-    //             PRICES[token.symbol.toUpperCase()] = token.current_price;
-    //         });
-    //     }
+    });
 
-    // });
-    return TOKEN_PRICES;
 }
 
-async function generatePriceStatString() {
-    // TODO
-    return "56000";
+async function generateBtcPriceStatString() {
+
+    result = ``;
+
+    let currentPrice = TOKEN_PRICES[0].current_price || 0
+    let priceChange = TOKEN_PRICES[0].price_change_24h || 0
+    let priceChangePercentage = TOKEN_PRICES[0].price_change_percentage_24h.toFixed(2) || 0
+    // let queryDate = TOKEN_PRICES[0].last_updated || '---'
+
+    // Prepare "up" or "down" symbol
+    var priceDirection;
+    var alertColor;
+    if (priceChange > 0) {
+        priceDirection = `\u2197`;
+        alertColor = `🟢`;
+    } else if (priceChange < 0) {
+        priceDirection = `\u2198`;
+        alertColor = `🔴`;
+    } else {
+        priceDirection = `\u2192`;
+        alertColor = `⚪`;
+    }
+
+    result = `${alertColor}BTC ${priceDirection} ${currentPrice} (${priceChangePercentage}%)`;
+
+    return result;
 }
 
 async function generateFloorPriceStatString() {
 
-    // TODO
-    let BTC_PRICE_CHANNEL = {
+    result = `asdFP: 980 LUNA ($816.12)`;
+    result = ``;
 
-    };
+    luna_price = 0;
+    for (var key in TOKEN_PRICES) {
 
-    // Dummy
-    result = `FP: 980 LUNA ($816.12)`;
+        var token = TOKEN_PRICES[key];
+
+        if (token.symbol == 'luna') {
+
+            luna_price = token.current_price;
+
+        }
+    }
+    
+    
+    floor_price = 0;
+    await axios.get(`${fpQueryURL}`).then(res => {
+        
+        // Just dump CoinGecko results to global variable
+        if (res.data) {
+
+            floor_price = res.data.floor;
+            
+        }
+        
+    });
+    
+    dollar_price = floor_price * luna_price;
+
+    result = `🟡${floor_price} Floor ($${dollar_price.toFixed(2)})`;
 
     return result;
 }
@@ -239,58 +263,9 @@ async function generateHashPowerStatString() {
     result = ``;
 
     // Dummy
-    result = `Hashpower: 150TH/s`;
+    result = `asdHashpower: 150TH/s`;
 
     return result;
-}
-
-// Functionality method
-function updatePrice() {
-
-    // New line
-    console.log(`------------------------`);
-
-
-    // Query to CoinGecko server
-    axios.get(`${queryURL}`).then(res => {
-
-        // If we got a valid response, process the data
-        if (res.data) {
-            // if (res.data && res.data[0].current_price && res.data[0].price_change_percentage_24h && res.data[0].last_updated) {
-            res.data.forEach(token => {
-
-                let currentPrice = res.data[0].current_price || 0
-                let priceChange = res.data[0].price_change_24h || 0
-                let priceChangePercentage = res.data[0].price_change_percentage_24h || 0
-                let queryDate = res.data[0].last_updated || '---'
-
-                // Find or create a channel for price
-
-                // if settings.json doesn't exist, make a new one
-                priceChanelID = getSetting("priceChannelID");
-
-                // Prepare "up" or "down" symbol
-                var priceDirection
-                if (priceChange > 0) {
-                    priceDirection = `\u2197`
-                } else if (priceChange < 0) {
-                    priceDirection = `\u2198`
-                } else {
-                    priceDirection = `\u2192`
-                }
-
-                // Update channel name
-                pricedChannelName = `${tickerDisplayID} ${currencySymbol}${currentPrice.toFixed(decimals)} ${priceDirection} (${priceChangePercentage.toFixed(2)}%)`;
-                console.log("[CH1]", pricedChannelName);
-
-            });
-
-        } else {
-            console.log(`Could not load price data for ${tokenQueryID}`)
-        }
-
-    }).catch(err => console.log('Error:', err))
-
 }
 
 
