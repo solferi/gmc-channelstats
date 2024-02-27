@@ -2,15 +2,16 @@
   "name": "gmc-channelstats",
   "description": "GMC Channel Stats",
   "version": "1.0.0",
-"author": "Solferi",
-"license": "MIT",
-"scripts": {
-  "start": "node server.js"
-},
-"dependencies": {
-  "dotenv"   : "^16.0.0",
-  "axios"    : "^0.26.0",
-  "eris"     : "^0.16.1",
-  "strftime" : "^0.10.2"
-}
+  "author": "Solferi",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^0.26.0",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.0.0",
+    "eris": "^0.16.1",
+    "strftime": "^0.10.2"
+  }
 }
