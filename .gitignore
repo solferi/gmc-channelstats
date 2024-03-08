@@ -3126,3 +3126,8 @@ node_modules/undici-types/README.md
 node_modules/undici-types/webidl.d.ts
 node_modules/undici-types/websocket.d.ts
 settings.json
+channels/1215529841856872458.priceBTC
+channels/1215529844969046078.priceLUNA
+channels/1215529848018042881.floor
+channels/1215529893140627497.miningHashrate
+channels/1215529897083273290.miningDailyProfit
