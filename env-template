@@ -1,1 +1,26 @@
-# Environment variables for GMC channel stats
+# Duplicate this file , edit, and rename it as ".env"
+# These are the environment variables the bot needs
+#    to query a token from CoinGecko and to log-in your
+#    Discord bot.
+
+
+DISCORD_TOKEN=
+
+DISCORD_SERVER_ID=
+
+# Base URL
+BASE_URL=https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=
+
+# Coingecko token name/s for query
+TOKEN_QUERY_ID=
+
+# Necropolis floor price query of GMC
+FP_QUERY_URL=
+
+# NiceHash
+NH_API_KEY=
+NH_API_SECRET=
+NH_ORG_ID=
+
+# Get from simplescraper.io
+RIGS_QUERY_URL=
